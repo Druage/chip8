@@ -1,14 +1,14 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
-#include "chip8.h"
+#include "videooutput.h"
 #include "qqml.h"
 
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
 
-    qmlRegisterType<Chip8>( "emulator", 1, 0, "Chip8" );
+    qmlRegisterType<VideoOutput>( "emulator", 1, 0, "VideoOutput" );
 
     QQmlApplicationEngine engine;
     engine.load(QUrl(QStringLiteral("qrc:/main.qml")));

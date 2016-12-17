@@ -4,7 +4,7 @@ QT += qml quick
 CONFIG += c++14
 
 SOURCES += main.cpp \
-    cpu.cpp \
+    videoutput.cpp \
     chip8.cpp
 
 RESOURCES += qml.qrc
@@ -18,5 +18,5 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += \
-    cpu.h \
+    videooutput.h \
     chip8.h

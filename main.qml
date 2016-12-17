@@ -7,10 +7,10 @@ Window {
     visible: true
     width: 640
     height: 320
-    title: qsTr("Hello World")
+    title: qsTr("Chip8")
 
-    Chip8 {
-        id: chip8;
+    VideoOutput {
+        id: video;
         anchors.fill: parent;
     }
 
