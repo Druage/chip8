@@ -1,11 +1,9 @@
 #pragma once
 
-//#include <QQuickItem>
-#include <QQuickItem>
 
 #include "cpu.h"
 
-#include <QPainter>
+#include <QQuickItem>
 
 class QSGSimpleTextureNode;
 

@@ -3,13 +3,12 @@
 #include <QSGTexture>
 #include <QSGSimpleTextureNode>
 #include <QQuickWindow>
-#include <QDebug>
 
 Chip8::Chip8(QQuickItem* parent)
     : QQuickItem( parent )
 {
     setFlag( QQuickItem::ItemHasContents );
-    m_cpu.load( "C:/Users/leewee/Downloads/c8games/PONG" );
+    m_cpu.load( "C:/Users/leewee/Downloads/c8games/INVADERS" );
 }
 
 QSGNode* Chip8::updatePaintNode(QSGNode* t_node, QQuickItem::UpdatePaintNodeData * ) {
@@ -25,11 +24,20 @@ QSGNode* Chip8::updatePaintNode(QSGNode* t_node, QQuickItem::UpdatePaintNodeData
 
     m_cpu.run();
     if ( m_cpu.videoFrameReady() ) {
-        m_cpu.drawToConsole();
 
-        // For whatever reason this image is not correct. I can't figure out why.
+        // Convert the mono image to RGB32. It seems to be better supported
+        // than QImage::Format_Mono is.
+        QImage img( 64, 32, QImage::Format_RGB32 );
 
-        QImage img( m_cpu.gfx(), 64, 32, 64, QImage::Format_Mono);
+        for ( int h=0; h < 32; ++h) {
+            for ( int w=0; w < 64; ++w ) {
+                if (  m_cpu.gfx()[ ( w  + ( h * 64 ) ) ] == 0 ) {
+                    img.setPixel( w, h, qRgb( 0, 0, 0 ) );
+                } else {
+                    img.setPixel( w, h, qRgb( 255, 255, 255) );
+                }
+            }
+        }
 
         QSGTexture *texture = window()->createTextureFromImage( img,  QQuickWindow::TextureOwnsGLTexture );
         texture->setFiltering( QSGTexture::Nearest );
@@ -39,7 +47,6 @@ QSGNode* Chip8::updatePaintNode(QSGNode* t_node, QQuickItem::UpdatePaintNodeData
         node->setOwnsTexture( true );
 
     }
-
 
     update();
 
