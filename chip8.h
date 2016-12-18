@@ -5,6 +5,8 @@
 #include <QFile>
 #include <QImage>
 
+class QKeyEvent;
+
 class Chip8 : public QObject
 {
     Q_OBJECT
@@ -13,10 +15,7 @@ public:
 
     bool load( QString t_romPath );
 
-
     void drawToConsole();
-
-    bool videoFrameReady() const;
 
     const quint8 *gfx() const {
         return m_gfx.data();
@@ -27,6 +26,10 @@ public slots:
 
 signals:
     void renderVideoFrame( const quint8 *t_data, int width, int height );
+    void renderAudioFrame();
+
+private slots:
+    void keyEvent( int t_key, bool t_state );
 
 private:
     QVector<quint8> m_memory;
@@ -34,8 +37,6 @@ private:
     QVector<quint16> m_stack;
     QVector<quint8> m_input;
     QVector<quint8> m_gfx;
-
-    QImage m_gfxImage;
 
     quint16 opcode;
     quint16 m_I;
@@ -46,8 +47,6 @@ private:
     quint8 m_soundTimer;
 
     QFile m_romFile;
-
-    bool m_draw;
 
     void incCounter();
     void skipNext();

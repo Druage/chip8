@@ -31,7 +31,6 @@ Chip8::Chip8( QObject *parent )
       m_stack( 16, 0 ),
       m_input( 16, 0 ),
       m_gfx( 64 * 32, 0 ),
-      m_gfxImage( 64, 32, QImage::Format_Mono ),
 
       opcode( 0 ),
       m_I( 0 ),
@@ -39,12 +38,10 @@ Chip8::Chip8( QObject *parent )
       m_sp( 0 ),
 
       m_delayTimer( 0 ),
-      m_soundTimer( 0 ),
-      m_draw( true )
+      m_soundTimer( 0 )
 
 {
 
-    m_gfxImage.fill( 0 );
     for ( int i=0; i < 80; ++i ) {
         m_memory[ i ] = fonts[ i ];
     }
@@ -85,7 +82,6 @@ void Chip8::run() {
                     // Execute opcode
                     //m_gfxImage.fill( 0 );
                     emit renderVideoFrame( m_gfx.data(), 64, 32 );
-                    m_draw = true;
                     incCounter();
                     break;
                 }
@@ -261,7 +257,6 @@ void Chip8::run() {
             }
 
             emit renderVideoFrame( m_gfx.data(), 64, 32 );
-            m_draw = true;
             incCounter();
             break;
         }
@@ -393,9 +388,64 @@ void Chip8::run() {
 
     if ( m_soundTimer > 0 ) {
         if ( m_soundTimer == 1 ) {
-            qDebug() << "BEEP!";
+            renderAudioFrame();
         }
         --m_soundTimer;
+    }
+
+}
+
+void Chip8::keyEvent( int t_key, bool t_state) {
+    switch( t_key ) {
+        case Qt::Key_1:
+            m_input[ 1 ] = t_state;
+            break;
+        case Qt::Key_2:
+            m_input[ 2 ] = t_state;
+            break;
+        case Qt::Key_3:
+            m_input[ 3 ] = t_state;
+            break;
+        case Qt::Key_4:
+            m_input[ 0xC ] = t_state;
+            break;
+        case Qt::Key_Q:
+            m_input[ 4 ] = t_state;
+            break;
+        case Qt::Key_W:
+            m_input[ 5 ] = t_state;
+            break;
+        case Qt::Key_E:
+            m_input[ 6 ] = t_state;
+            break;
+        case Qt::Key_R:
+            m_input[ 0xD ] = t_state;
+            break;
+        case Qt::Key_A:
+            m_input[ 7 ] = t_state;
+            break;
+        case Qt::Key_S:
+            m_input[ 8 ] = t_state;
+            break;
+        case Qt::Key_D:
+            m_input[ 9 ] = t_state;
+        case Qt::Key_F:
+            m_input[ 0xE ] = t_state;
+            break;
+        case Qt::Key_Z:
+            m_input[ 0xA ] = t_state;
+            break;
+        case Qt::Key_X:
+            m_input[ 0 ] = t_state;
+            break;
+        case Qt::Key_C:
+            m_input[ 0xB ] = t_state;
+            break;
+        case Qt::Key_V:
+            m_input[ 0xF ] = t_state;
+            break;
+        default:
+            break;
     }
 }
 
@@ -416,10 +466,6 @@ void Chip8::drawToConsole() {
 
 }
 
-bool Chip8::videoFrameReady() const {
-    return m_draw;
-}
-
 void Chip8::incCounter() {
     m_pc += 2;
 }
@@ -428,10 +474,10 @@ void Chip8::skipNext() {
         m_pc += 4;
     }
 
-    quint8 Chip8::extractX(quint16 opcode) {
-        return ( opcode & 0x0F00 ) >> 8;
-    }
+quint8 Chip8::extractX(quint16 opcode) {
+    return ( opcode & 0x0F00 ) >> 8;
+}
 
-    quint8 Chip8::extractY(quint16 opcode) {
-        return ( opcode & 0x00F0 ) >> 4;
-    }
+quint8 Chip8::extractY(quint16 opcode) {
+    return ( opcode & 0x00F0 ) >> 4;
+}

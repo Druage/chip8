@@ -1,14 +1,25 @@
 #include "videooutput.h"
+#include "chip8.h"
+#include "audiooutput.h"
 
 #include <QSGTexture>
 #include <QSGSimpleTextureNode>
 #include <QQuickWindow>
+#include <QThread>
+#include <QTimer>
 
 VideoOutput::VideoOutput(QQuickItem* parent)
     : QQuickItem( parent ),
-      m_keys( 16, 0 ),
+
+      m_audioOutput( new AudioOutput ),
       m_chip8( new Chip8 ),
-      m_texture( 64, 32, QImage::Format_RGB32 )
+
+      m_thread( new QThread( this ) ),
+      m_audioThread( new QThread( this ) ),
+
+      m_timer( new QTimer ),
+
+      m_texture( 64, 32, QImage::Format_ARGB32 )
 {
 
     // I think it looks kinda cool with garbage data starting out. Uncomment this
@@ -16,6 +27,8 @@ VideoOutput::VideoOutput(QQuickItem* parent)
 
     //m_texture.fill( Qt::black );
     setFlag( QQuickItem::ItemHasContents );
+
+    connect( m_chip8, &Chip8::renderAudioFrame, m_audioOutput, &AudioOutput::renderAudioFrame );
 
     connect( m_chip8, &Chip8::renderVideoFrame, this, [this] ( const quint8 *t_data, int width, int height ) {
 
@@ -26,10 +39,11 @@ VideoOutput::VideoOutput(QQuickItem* parent)
         // Lock that shit!
         for ( int h=0; h < height; ++h) {
             for ( int w=0; w < width; ++w ) {
-                if (  t_data[ ( w  + ( h * width ) ) ] == 0 ) {
-                    m_texture.setPixel( w, h, qRgb( 0, 0, 0 ) );
+                quint8 state = t_data[ ( w  + ( h * width ) ) ];
+                if ( state == 0 ) {
+                    m_texture.setPixel( w, h, qRgba( 0, 0, 0, 0 ) );
                 } else {
-                    m_texture.setPixel( w, h, qRgb( 255, 255, 255) );
+                    m_texture.setPixel( w, h, qRgba( 255, 255, 255, 255 ) );
                 }
             }
         }
@@ -42,26 +56,38 @@ VideoOutput::VideoOutput(QQuickItem* parent)
     m_chip8->load( "C:/Users/leewee/Downloads/c8games/INVADERS" );
 
     // Set up timers and threads and all the gibberish.
-    m_timer.setTimerType( Qt::PreciseTimer );
-    m_timer.setInterval( 16 );
+    m_timer->setTimerType( Qt::PreciseTimer );
 
-    m_thread.moveToThread( &m_thread );
-    m_chip8->moveToThread( &m_thread );
+    // Chip8 is really slow, so we shall speed up the gameplay.
+    m_timer->setInterval( 16 / 2 );
 
-    connect( &m_thread, &QThread::started, &m_timer, static_cast<void (QTimer::*)(void)>(&QTimer::start) );
-    connect( &m_thread, &QThread::finished, &m_timer, &QTimer::stop );
+    // Move objects to the proper threads.
+    m_audioOutput->moveToThread( m_audioThread );
+    m_chip8->moveToThread( m_thread );
 
-    connect( &m_timer, &QTimer::timeout, m_chip8, &Chip8::run );
+    connect( m_thread, &QThread::started, m_timer, static_cast<void (QTimer::*)(void)>(&QTimer::start) );
+    connect( m_thread, &QThread::finished, m_timer, &QTimer::stop );
+
+    // Connect delete signals for object cleanup.
+    connect( m_audioThread, &QThread::destroyed, m_audioOutput, &Chip8::deleteLater );
+    connect( m_thread, &QThread::destroyed, m_chip8, &Chip8::deleteLater );
+    connect( m_thread, &QThread::destroyed, m_timer, &QTimer::deleteLater );
+
+
+    connect( m_timer, &QTimer::timeout, m_chip8, &Chip8::run );
 
     // Start dat timer baby and thread!
-    m_thread.start( QThread::HighestPriority );
+    m_thread->start( QThread::HighestPriority );
+    m_audioThread->start( QThread::HighestPriority );
 
 }
 
 VideoOutput::~VideoOutput() {
-    m_thread.quit();
-    m_thread.wait();
-    m_chip8->deleteLater();
+    m_thread->quit();
+    m_thread->wait();
+
+    m_audioThread->quit();
+    m_audioThread->wait();
 }
 
 QSGNode* VideoOutput::updatePaintNode(QSGNode* t_node, QQuickItem::UpdatePaintNodeData * ) {
@@ -85,4 +111,19 @@ QSGNode* VideoOutput::updatePaintNode(QSGNode* t_node, QQuickItem::UpdatePaintNo
     node->setOwnsTexture( true );
 
     return node;
+}
+
+void VideoOutput::keyPressEvent(QKeyEvent *t_event) {
+
+    QMetaObject::invokeMethod( m_chip8, "keyEvent", Q_ARG( int, t_event->key() )
+                                                  , Q_ARG( bool, true )) ;
+
+    QQuickItem::keyPressEvent( t_event );
+}
+
+void VideoOutput::keyReleaseEvent(QKeyEvent *t_event) {
+
+    QMetaObject::invokeMethod( m_chip8, "keyEvent", Q_ARG( int, t_event->key() )
+                                                  , Q_ARG( bool, false )) ;
+    QQuickItem::keyReleaseEvent( t_event );
 }

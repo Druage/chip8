@@ -1,11 +1,12 @@
 #pragma once
 
-
-#include "chip8.h"
-
 #include <QQuickItem>
-#include <QThread>
-#include <QTimer>
+#include <QImage>
+
+class AudioOutput;
+class QTimer;
+class QThread;
+class Chip8;
 
 class QSGSimpleTextureNode;
 
@@ -16,20 +17,18 @@ public:
     explicit VideoOutput( QQuickItem* parent = nullptr );
     ~VideoOutput();
 
-    QSGNode *updatePaintNode( QSGNode *t_node, UpdatePaintNodeData *t_paintData );
-    void keyPressEvent( QKeyEvent *t_event ) override {
+    QSGNode *updatePaintNode( QSGNode *t_node, UpdatePaintNodeData *t_paintData ) override;
 
-
-        QQuickItem::keyPressEvent( t_event );
-    }
+    void keyPressEvent( QKeyEvent *t_event ) override;
+    void keyReleaseEvent( QKeyEvent *t_event ) override;
 
 private:
+    AudioOutput *m_audioOutput;
     Chip8 *m_chip8;
-    QThread m_thread;
-    QTimer m_timer;
-    QVector<bool> m_keys;
+    QThread *m_thread;
+    QThread *m_audioThread;
+    QTimer *m_timer;
 
     QImage m_texture;
 
 };
-
